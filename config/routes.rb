@@ -11,8 +11,7 @@ Rails.application.routes.draw do
    resources :users, only: [:new, :create]
 
    post 'users/confirm/' => 'users#confirm'
-    post 'users/new'
-  resources :sessions, only: [:new, :create, :destroy]
+post 'users/new'
 
   get 'about' => 'welcome#about'
 
