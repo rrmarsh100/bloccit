@@ -1,41 +1,32 @@
 class PostsController < ApplicationController
+  before_action :require_sign_in, except: :show
 
+  before_action :admin_or_moderator_user, only: [:edit, :update]
 
-     before_action :require_sign_in, except: :show
-
-        before_action :authorize_user, except: [:show, :new, :create]
-
+  before_action :admin_user, only: [:destroy]
 
   def show
-    @topic = Topic.find(params[:topic_id])
     @post = Post.find(params[:id])
   end
 
   def new
     @post = Post.new
+    @topic = Topic.find(params[:topic_id])
   end
 
   def create
-    # #9
     @topic = Topic.find(params[:topic_id])
-# #35
+    @post = @topic.posts.build(post_params)
+    @post.user = current_user
 
-   @post = @topic.posts.build(post_params)
-   @post.user = current_user
-
-
-    # #10
     if @post.save
-      # #11
-      flash[:notice] = "Post was saved."
+      flash[:notice] = 'Post was saved.'
       redirect_to [@topic, @post]
     else
-      # #12
-      flash.now[:alert] = "There was an error saving the post. Please try again."
+      flash.now[:alert] = 'There was an error saving the post. Please try again.'
       render :new
     end
   end
-
 
   def edit
     @post = Post.find(params[:id])
@@ -47,19 +38,18 @@ class PostsController < ApplicationController
 
     if @post.save
       flash[:notice] = "Post was updated."
-      redirect_to [@post.topic,@post]
+      redirect_to [@post.topic, @post]
     else
       flash.now[:alert] = "There was an error saving the post. Please try again."
       render :edit
     end
-  end
-  def destroy
-     @post = Post.find(params[:id])
+   end
 
- # #8
+   def destroy
+     @post = Post.find(params[:id])
      if @post.destroy
        flash[:notice] = "\"#{@post.title}\" was deleted successfully."
-        redirect_to @post.topic
+       redirect_to @post.topic
      else
        flash.now[:alert] = "There was an error deleting the post."
        render :show
@@ -71,14 +61,19 @@ class PostsController < ApplicationController
      params.require(:post).permit(:title, :body)
    end
 
+   def admin_user
+     post = Post.find(params[:id])
+     unless current_user == post.user || current_user.admin?
+       flash[:alert] = "You must be an admin to do that."
+       redirect_to [post.topic, post]
+     end
+   end
 
-      def authorize_user
-        post = Post.find(params[:id])
-    # #11
-        unless current_user == post.user || current_user.admin?
-          flash[:alert] = "You must be an admin to do that."
-          redirect_to [post.topic, post]
-        end
-      end
-
-end
+   def admin_or_moderator_user
+     post = Post.find(params[:id])
+     unless current_user == post.user || current_user.admin? || current_user.moderator?
+       flash[:alert] = "You must be an admin or moderator to do that."
+       redirect_to [post.topic, post]
+     end
+   end
+ end
